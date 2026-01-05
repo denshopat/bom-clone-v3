@@ -1,0 +1,12 @@
+[Database]
+host = localhost
+database = bom_clone_v3
+user = patrick
+password = CHANGE_ME
+port = 5432
+
+[Paths]
+zip_dir = ./data/zips/newzips
+extract_dir = ./data/extracted
+log_file = ./data/logs/updatelog.txt
+download_log = ./data/logs/updater.csv

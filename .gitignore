@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+.DS_Store
+
+# Data artifacts
+/data/metadata/
+/data/zips/
+/data/extracted/
+/data/output/
+/data/logs/
+
+# Local config overrides
+.env
+
+config.ini
