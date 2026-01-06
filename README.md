@@ -28,17 +28,33 @@ cd REPO_ROOT
 python3 scripts/update_station_lists.py
 ```
 
+Flags:
+- `--output-dir PATH`
+- `--timeout SECONDS`
+
 ### 2) Download station metadata PDFs
 
 ```bash
 python3 scripts/download_metadata_pdfs.py
 ```
 
+Flags:
+- `--metadata-dir PATH`
+- `--log-file PATH`
+- `--sleep SECONDS`
+- `--limit N`
+
 If you need to clean metadata PDFs (remove corrupt or unreadable files):
 
 ```bash
 python3 scripts/refresh_metadata_pdfs.py
 ```
+
+Flags:
+- `--metadata-dir PATH`
+- `--write-errors PATH`
+- `--sleep SECONDS`
+- `--limit N`
 
 ### 3) Build station table CSV
 
@@ -48,6 +64,12 @@ python3 scripts/build_station_table.py
 
 Output: `data/output/station_table.csv` and `data/output/station_table_known_state.csv`
 
+Flags:
+- `--download-missing`
+- `--download-limit N`
+- `--download-sleep SECONDS`
+- `--output PATH`
+
 ### 4) Setup database and load station/equipment tables
 
 Automated (recommended):
@@ -56,17 +78,44 @@ Automated (recommended):
 python3 scripts/setup_database.py
 ```
 
+Flags:
+- `--database NAME`
+- `--schema PATH`
+- `--station-csv PATH`
+- `--events-csv PATH`
+- `--elements-csv PATH`
+- `--equipment-sql PATH`
+- `--skip-stations`
+- `--skip-equipment`
+- `--skip-indexes`
+
 ### 5) Extract equipment history
 
 ```bash
 python3 scripts/extract_equipment_history.py
 ```
 
+Flags:
+- `--metadata-dir PATH`
+- `--events-out PATH`
+- `--elements-out PATH`
+- `--errors-out PATH`
+
 ### 6) Download daily rainfall/max/min zips
 
 ```bash
 python3 scripts/station_data_downloader.py --verbose
 ```
+
+Flags:
+- `--database NAME`
+- `--download-dir PATH`
+- `--log-file PATH`
+- `--sleep SECONDS`
+- `--limit N`
+- `--dry-run`
+- `--no-resume`
+- `--verbose`
 
 Downloads go to `data/zips/` (from `config.ini`).
 
@@ -78,6 +127,12 @@ This loader uses staging tables and unique indexes, so it is safe to re-run.
 python3 scripts/load_daily_data.py --delete-bad-zips --redownload-bad-zips
 ```
 
+Flags:
+- `--extract-only`
+- `--load-only`
+- `--delete-bad-zips`
+- `--redownload-bad-zips`
+
 ### 8) Optional clean restart for daily data
 
 ```bash
@@ -88,3 +143,13 @@ psql -d bom_clone_v3 -c \"TRUNCATE daily_rainfall, daily_max_temperature, daily_
 
 - `scripts/station_data_downloader.py` uses equipment tables in `bom_clone_v3` to determine which stations have temperature data.
 - Logs are written to `data/logs/`.
+
+## One-shot runner
+
+To run the full workflow in order (including downloads and DB load):
+
+```bash
+./scripts/run_all.sh
+```
+
+This script is intentionally sequential; review it before running.
