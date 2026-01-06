@@ -45,7 +45,13 @@ Output: `data/output/station_table.csv` and `data/output/station_table_known_sta
 
 ### 3) Load station table into DB
 
-Example (psql):
+Automated (recommended):
+
+```bash
+python3 scripts/setup_database.py
+```
+
+Manual (psql):
 
 ```bash
 psql -d bom_clone_v3 -f sql/bom_clone_v3_schema.sql
@@ -63,6 +69,14 @@ Outputs:
 - `data/output/station_equipment_elements.csv`
 
 ### 5) Load equipment history into DB
+
+Automated (recommended, includes equipment indexes/views):
+
+```bash
+python3 scripts/setup_database.py --skip-stations
+```
+
+Manual:
 
 ```bash
 psql -d bom_clone_v3 -f sql/station_equipment_tables.sql
