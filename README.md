@@ -19,7 +19,8 @@ A local pipeline for building the BOM clone database: station metadata, equipmen
 Follow these steps in order. Run commands from the repo root:
 
 ```bash
-cd /path/to/bom-clone-v3
+git clone git@github.com:denshopat/bom-clone-v3.git
+cd bom-clone-v3
 ```
 
 ### 1) Update station lists
