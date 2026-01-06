@@ -53,8 +53,8 @@ python3 scripts/update_station_lists.py
 ```
 
 Flags:
-- `--output-dir PATH`
-- `--timeout SECONDS`
+- `--output-dir PATH` destination for list files (default: `data/lists`)
+- `--timeout SECONDS` HTTP timeout per request
 
 ### 2) Download station metadata PDFs
 
@@ -63,10 +63,10 @@ python3 scripts/download_metadata_pdfs.py
 ```
 
 Flags:
-- `--metadata-dir PATH`
-- `--log-file PATH`
-- `--sleep SECONDS`
-- `--limit N`
+- `--metadata-dir PATH` destination for PDFs (default: `data/metadata`)
+- `--log-file PATH` CSV log for failed downloads
+- `--sleep SECONDS` delay between downloads
+- `--limit N` cap number of stations to fetch
 
 If you need to clean metadata PDFs (remove corrupt or unreadable files):
 
@@ -75,10 +75,10 @@ python3 scripts/refresh_metadata_pdfs.py
 ```
 
 Flags:
-- `--metadata-dir PATH`
-- `--write-errors PATH`
-- `--sleep SECONDS`
-- `--limit N`
+- `--metadata-dir PATH` location of PDFs to verify
+- `--write-errors PATH` CSV log for failed re-downloads
+- `--sleep SECONDS` delay between downloads
+- `--limit N` cap number of re-downloads
 
 ### 3) Build station table CSV
 
@@ -89,10 +89,10 @@ python3 scripts/build_station_table.py
 Output: `data/output/station_table.csv` and `data/output/station_table_known_state.csv`
 
 Flags:
-- `--download-missing`
-- `--download-limit N`
-- `--download-sleep SECONDS`
-- `--output PATH`
+- `--download-missing` try to fetch missing metadata PDFs
+- `--download-limit N` cap missing-PDF downloads
+- `--download-sleep SECONDS` delay between missing-PDF downloads
+- `--output PATH` output CSV path
 
 ### 4) Setup database and load station/equipment tables
 
@@ -103,15 +103,15 @@ python3 scripts/setup_database.py
 ```
 
 Flags:
-- `--database NAME`
-- `--schema PATH`
-- `--station-csv PATH`
-- `--events-csv PATH`
-- `--elements-csv PATH`
-- `--equipment-sql PATH`
-- `--skip-stations`
-- `--skip-equipment`
-- `--skip-indexes`
+- `--database NAME` override DB name from `config.ini`
+- `--schema PATH` schema SQL file to load
+- `--station-csv PATH` station CSV to load
+- `--events-csv PATH` equipment events CSV
+- `--elements-csv PATH` equipment elements CSV
+- `--equipment-sql PATH` equipment table SQL file
+- `--skip-stations` do not load station table
+- `--skip-equipment` do not load equipment tables
+- `--skip-indexes` skip equipment indexes/views
 
 ### 5) Extract equipment history
 
@@ -120,10 +120,10 @@ python3 scripts/extract_equipment_history.py
 ```
 
 Flags:
-- `--metadata-dir PATH`
-- `--events-out PATH`
-- `--elements-out PATH`
-- `--errors-out PATH`
+- `--metadata-dir PATH` source PDFs directory
+- `--events-out PATH` output events CSV
+- `--elements-out PATH` output elements CSV
+- `--errors-out PATH` CSV log for parse errors
 
 ### 6) Download daily rainfall/max/min zips
 
@@ -132,14 +132,14 @@ python3 scripts/station_data_downloader.py --verbose
 ```
 
 Flags:
-- `--database NAME`
-- `--download-dir PATH`
-- `--log-file PATH`
-- `--sleep SECONDS`
-- `--limit N`
-- `--dry-run`
-- `--no-resume`
-- `--verbose`
+- `--database NAME` override DB name from `config.ini`
+- `--download-dir PATH` destination for zips
+- `--log-file PATH` CSV log for downloads
+- `--sleep SECONDS` delay between downloads
+- `--limit N` cap total download attempts
+- `--dry-run` print planned downloads without fetching
+- `--no-resume` ignore prior log state
+- `--verbose` print per-download decisions
 
 Downloads go to `data/zips/` (from `config.ini`).
 
@@ -152,10 +152,10 @@ python3 scripts/load_daily_data.py --delete-bad-zips --redownload-bad-zips
 ```
 
 Flags:
-- `--extract-only`
-- `--load-only`
-- `--delete-bad-zips`
-- `--redownload-bad-zips`
+- `--extract-only` only extract zips, skip DB load
+- `--load-only` only load extracted CSVs
+- `--delete-bad-zips` remove corrupt zips during extract
+- `--redownload-bad-zips` re-download corrupt zips and re-extract
 
 ### 8) Optional clean restart for daily data
 
