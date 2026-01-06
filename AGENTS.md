@@ -105,8 +105,4 @@ public.daily_min_temperature
 - quality (boolean)
 - product_code (product_code_enum, not null)
 
-public.product_code_enum values:
-- IDCJAC0009 (rainfall)
-- IDCJAC0010 (max temp)
-- IDCJAC0011 (min temp)
 ```
