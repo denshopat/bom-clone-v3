@@ -241,3 +241,15 @@ Or update without opening:
 ```bash
 python3 scripts/update_status.py
 ```
+
+## Summary reports
+
+Generate a timestamped summary snapshot (useful if logs are rotated/deleted):
+
+```bash
+python3 scripts/summary_report.py
+```
+
+Outputs:
+- `data/logs/summary_YYYYMMDD_HHMMSS.json`
+- `data/logs/summary_YYYYMMDD_HHMMSS.txt`

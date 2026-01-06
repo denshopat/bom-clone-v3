@@ -153,3 +153,5 @@ python3 scripts/update_status.py
 env PYTHONUNBUFFERED=1 run_step 9 "load_daily_data" \
   python3 scripts/load_daily_data.py --delete-bad-zips --redownload-bad-zips
 python3 scripts/update_status.py
+
+python3 scripts/summary_report.py
