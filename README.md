@@ -253,3 +253,21 @@ python3 scripts/summary_report.py
 Outputs:
 - `data/logs/summary_YYYYMMDD_HHMMSS.json`
 - `data/logs/summary_YYYYMMDD_HHMMSS.txt`
+
+## Analytics dashboard
+
+Generates a post-run analytics page with embedded charts:
+
+```bash
+python3 scripts/analytics_dashboard.py
+```
+
+Open it in your browser:
+
+```bash
+./scripts/open_analytics.sh
+```
+
+Outputs:
+- `data/logs/analytics/analytics.html`
+- `data/logs/analytics/analytics.json`
