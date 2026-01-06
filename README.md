@@ -16,6 +16,18 @@ A local pipeline for building the BOM clone database: station metadata, equipmen
 
 ## Workflow (end-to-end)
 
+This project follows a simple, ordered pipeline. Each step builds the inputs for the next:
+
+1. update_lists — download the latest station list files from BOM
+2. download_metadata — fetch station metadata PDFs
+3. refresh_metadata — clean out corrupt metadata PDFs
+4. build_station_table — generate station table CSVs
+5. setup_database — create DB + load station/equipment tables
+6. extract_equipment — parse equipment history into CSVs
+7. setup_equipment — load equipment CSVs + indexes/views
+8. download_zips — download daily rainfall/max/min data zips
+9. load_daily_data — extract zips and load into daily tables (deduped)
+
 Follow these steps in order. Run commands from the repo root:
 
 ```bash
