@@ -74,6 +74,10 @@ public.station_equipment_element
 - has_events (varchar(1))
 - source_pdf (text)
 
+public.acornsat (view)
+- View on `public.station` containing BOM ACORNSAT network stations.
+- Same columns as `public.station`.
+
 public.daily_rainfall
 - id (integer, PK, identity)
 - bom_station_number (integer, not null)
