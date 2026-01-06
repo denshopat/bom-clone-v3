@@ -13,6 +13,16 @@ A local pipeline for building the BOM clone database: station metadata, equipmen
 - `data/logs/` - run logs and error reports
 - `data/zips/` - downloaded BOM data zips
 
+## Quick start
+
+```bash
+git clone git@github.com:denshopat/bom-clone-v3.git
+cd bom-clone-v3
+cp config.ini.example config.ini
+# edit config.ini (DB creds + paths)
+./scripts/run_all.sh
+```
+
 ## Workflow (end-to-end)
 
 At a high level, we start from the official BOM station lists (temperature + rainfall). Those lists tell us which stations exist and provide basic metadata. We then download each station’s metadata PDF and scrape it to build the station table and the equipment history. The equipment history determines which stations have temperature sensors (and when), which in turn tells us which daily datasets to download. Finally, we download the daily rainfall/max/min temperature zips and load them into the database using a deduped loader.
@@ -215,13 +225,3 @@ Step map:
 7. setup_equipment  
 8. download_zips  
 9. load_daily_data
-
-## Quick start
-
-```bash
-git clone git@github.com:denshopat/bom-clone-v3.git
-cd bom-clone-v3
-cp config.ini.example config.ini
-# edit config.ini (DB creds + paths)
-./scripts/run_all.sh
-```
