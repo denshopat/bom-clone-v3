@@ -16,6 +16,8 @@ A local pipeline for building the BOM clone database: station metadata, equipmen
 
 ## Workflow (end-to-end)
 
+At a high level, we start from the official BOM station lists (temperature + rainfall). Those lists tell us which stations exist and provide basic metadata. We then download each station’s metadata PDF and scrape it to build the station table and the equipment history. The equipment history determines which stations have temperature sensors (and when), which in turn tells us which daily datasets to download. Finally, we download the daily rainfall/max/min temperature zips and load them into the database using a deduped loader.
+
 This project follows a simple, ordered pipeline. Each step builds the inputs for the next:
 
 1. update_lists — download the latest station list files from BOM
