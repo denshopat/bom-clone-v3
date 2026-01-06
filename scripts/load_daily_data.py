@@ -164,6 +164,10 @@ def ensure_stage_tables(engine):
                     f"(LIKE {target} INCLUDING DEFAULTS)"
                 )
             )
+            # Make stage tables nullable for id and drop defaults/constraints.
+            conn.execute(text(f"ALTER TABLE {stage} ALTER COLUMN id DROP NOT NULL"))
+            conn.execute(text(f"ALTER TABLE {stage} ALTER COLUMN id DROP DEFAULT"))
+            conn.execute(text(f"ALTER TABLE {stage} ALTER COLUMN id DROP IDENTITY IF EXISTS"))
 
 
 def ensure_unique_indexes(engine):
@@ -206,7 +210,14 @@ def load_station_csv(engine, table, csv_path):
         chunk.rename(columns=column_mapping, inplace=True)
         chunk["date"] = pd.to_datetime(chunk[["year", "month", "day"]])
         chunk.drop(columns=["year", "month", "day"], inplace=True)
-        chunk.to_sql(stage_table, engine, if_exists="append", index=False, method="multi")
+        chunk.to_sql(
+            stage_table,
+            engine,
+            if_exists="append",
+            index=False,
+            method="multi",
+            chunksize=1000,
+        )
 
         with engine.begin() as conn:
             columns_sql = ", ".join(insert_columns)
