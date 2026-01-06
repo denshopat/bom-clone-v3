@@ -153,3 +153,46 @@ To run the full workflow in order (including downloads and DB load):
 ```
 
 This script is intentionally sequential; review it before running.
+
+### Resume-aware runner
+
+`run_all.sh` stores progress in `data/logs/run_state.env` and skips completed steps by default.
+
+Examples:
+
+- Run from the beginning (default):
+  ```bash
+  ./scripts/run_all.sh
+  ```
+
+- Start from a specific step:
+  ```bash
+  ./scripts/run_all.sh --from 6
+  ```
+
+- Stop after a step:
+  ```bash
+  ./scripts/run_all.sh --to 8
+  ```
+
+- Force a single step to re-run (even if already completed):
+  ```bash
+  ./scripts/run_all.sh --force 8
+  ```
+
+- Reset the state file and run everything:
+  ```bash
+  ./scripts/run_all.sh --reset
+  ```
+
+Step map:
+
+1. update_lists  
+2. download_metadata  
+3. refresh_metadata  
+4. build_station_table  
+5. setup_database  
+6. extract_equipment  
+7. setup_equipment  
+8. download_zips  
+9. load_daily_data
