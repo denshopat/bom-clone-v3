@@ -6,7 +6,6 @@ A local pipeline for building the BOM clone database: station metadata, equipmen
 
 - `config.ini` - single config file (DB + paths)
 - `scripts/` - active scripts
-- `scripts/legacy/` - older scripts kept for reference
 - `sql/` - schema + table definitions
 - `data/metadata/` - station metadata PDFs
 - `data/lists/` - BOM station lists (`alphaAUS_3.txt`, `numAUS_139.txt`)

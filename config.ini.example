@@ -1,7 +1,7 @@
 [Database]
 host = localhost
 database = bom_clone_v3
-user = patrick
+user = CHANGE_ME
 password = CHANGE_ME
 port = 5432
 
