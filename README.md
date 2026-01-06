@@ -225,3 +225,19 @@ Step map:
 7. setup_equipment  
 8. download_zips  
 9. load_daily_data
+
+## Status dashboard
+
+A lightweight status dashboard is generated at `data/logs/status.html` and auto-refreshes every 30 seconds.
+
+Generate + open it:
+
+```bash
+./scripts/open_status.sh
+```
+
+Or update without opening:
+
+```bash
+python3 scripts/update_status.py
+```
