@@ -78,6 +78,18 @@ FORCE_STEP=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --status)
+      if [[ -f "$STATE_FILE" ]]; then
+        # shellcheck disable=SC1090
+        source "$STATE_FILE"
+        echo "State file: $STATE_FILE"
+        echo "Last step: ${LAST_STEP:-none}"
+      else
+        echo "State file: $STATE_FILE"
+        echo "Last step: none"
+      fi
+      exit 0
+      ;;
     --from)
       FROM_STEP="$2"
       shift 2
@@ -132,4 +144,3 @@ env PYTHONUNBUFFERED=1 run_step 8 "download_zips" \
 
 env PYTHONUNBUFFERED=1 run_step 9 "load_daily_data" \
   python3 scripts/load_daily_data.py --delete-bad-zips --redownload-bad-zips
-

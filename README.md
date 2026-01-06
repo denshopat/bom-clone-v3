@@ -185,6 +185,11 @@ Examples:
   ./scripts/run_all.sh --reset
   ```
 
+- Show current status:
+  ```bash
+  ./scripts/run_all.sh --status
+  ```
+
 Step map:
 
 1. update_lists  
