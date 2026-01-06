@@ -28,3 +28,81 @@ This repo builds and maintains a BOM clone database (stations, equipment history
 - Never commit `config.ini` or large data directories under `data/`.
 - Use `config.ini.example` for sharing config layout.
 
+## SQL Schema Prompt (copy/paste)
+Use this schema snapshot when asking ChatGPT to help write SQL queries:
+
+```
+Database: bom_clone_v3
+
+public.station
+- id (integer, PK, identity)
+- bom_station_number (integer, not null)
+- dist (integer)
+- station_name (varchar(100), not null)
+- start_year (integer)
+- end_year (integer)
+- latitude (double precision)
+- longitude (double precision)
+- source (varchar(30))
+- state (varchar(3), not null)
+- height (double precision)
+- bar_height (double precision)
+- wmo (integer)
+- metadata_compiled (date)
+- bom_district_name (text)
+- identification (varchar(30))
+- network_classification (varchar(100))
+- station_purpose (varchar(100))
+- aws (varchar(30))
+- status (varchar(20))
+- note (varchar(50))
+
+public.station_equipment_event
+- id (integer, PK, identity)
+- bom_station_number (integer, not null)
+- element (text, not null)
+- action (varchar(10))
+- instrument_detail (text)
+- system (text)
+- event_date (date)
+- source_pdf (text)
+
+public.station_equipment_element
+- id (integer, PK, identity)
+- bom_station_number (integer, not null)
+- element (text, not null)
+- has_events (varchar(1))
+- source_pdf (text)
+
+public.daily_rainfall
+- id (integer, PK, identity)
+- bom_station_number (integer, not null)
+- date (date, not null)
+- rainfall_amount (numeric(6,2))
+- rainfall_period (integer)
+- quality (boolean)
+- product_code (product_code_enum, not null)
+
+public.daily_max_temperature
+- id (integer, PK, identity)
+- bom_station_number (integer, not null)
+- date (date, not null)
+- max_temperature (numeric(4,1))
+- accumulation_days (integer)
+- quality (boolean)
+- product_code (product_code_enum, not null)
+
+public.daily_min_temperature
+- id (integer, PK, identity)
+- bom_station_number (integer, not null)
+- date (date, not null)
+- min_temperature (numeric(4,1))
+- accumulation_days (integer)
+- quality (boolean)
+- product_code (product_code_enum, not null)
+
+public.product_code_enum values:
+- IDCJAC0009 (rainfall)
+- IDCJAC0010 (max temp)
+- IDCJAC0011 (min temp)
+```
