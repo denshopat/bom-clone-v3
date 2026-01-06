@@ -6,6 +6,7 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import psycopg2
+import warnings
 
 from config import get_db_params, load_config
 
@@ -15,6 +16,11 @@ TABLES = {
     "daily_max_temperature": "Max Temperature",
     "daily_min_temperature": "Min Temperature",
 }
+
+warnings.filterwarnings(
+    "ignore",
+    message="Unable to import Axes3D",
+)
 
 
 def fetch_yearly_counts(conn, table):
@@ -138,16 +144,14 @@ def main():
 </html>"""
 
     (output_dir / "analytics.html").write_text(html, encoding="utf-8")
-    (output_dir / "analytics.json").write_text(
-        json_dump(summary), encoding="utf-8"
-    )
+    (output_dir / "analytics.json").write_text(json_dump(summary), encoding="utf-8")
 
 
-+def json_dump(data):
-+    import json
-+
-+    return json.dumps(data, indent=2)
-+
-+
- if __name__ == "__main__":
-     main()
+def json_dump(data):
+    import json
+
+    return json.dumps(data, indent=2)
+
+
+if __name__ == "__main__":
+    main()
