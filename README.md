@@ -215,3 +215,13 @@ Step map:
 7. setup_equipment  
 8. download_zips  
 9. load_daily_data
+
+## Quick start
+
+```bash
+git clone git@github.com:denshopat/bom-clone-v3.git
+cd bom-clone-v3
+cp config.ini.example config.ini
+# edit config.ini (DB creds + paths)
+./scripts/run_all.sh
+```
