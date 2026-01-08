@@ -254,6 +254,38 @@ Outputs:
 - `data/logs/summary_YYYYMMDD_HHMMSS.json`
 - `data/logs/summary_YYYYMMDD_HHMMSS.txt`
 
+## Current temperature quick update
+
+This flow targets only stations that are already current in the daily temp tables
+(based on the global max dates in `daily_max_temperature` and `daily_min_temperature`).
+It refreshes just those max/min zips and reloads only the temp tables.
+
+1) Download current-station max/min zips and write the station list:
+
+```bash
+python3 scripts/download_current_temps.py --force
+```
+
+2) Extract + load only max/min temps for that station list:
+
+```bash
+python3 scripts/load_daily_data.py \
+  --stations-file data/output/current_temp_stations.txt \
+  --data-types daily_max_temperature,daily_min_temperature \
+  --force-extract
+```
+
+Or run the wrapper:
+
+```bash
+./scripts/update_current_temps.sh
+```
+
+Notes:
+- `--force` re-downloads temp zips even if they already exist.
+- `--force-extract` re-extracts CSVs even if already present.
+- Use `--either` on the downloader if you want stations current in max OR min.
+
 ## Analytics dashboard
 
 Generates a post-run analytics page with embedded charts:

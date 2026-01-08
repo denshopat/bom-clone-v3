@@ -19,10 +19,33 @@ This repo builds and maintains a BOM clone database (stations, equipment history
 - `scripts/build_station_table.py` → builds `data/output/station_table.csv`
 - `scripts/extract_equipment_history.py` → builds equipment CSVs in `data/output/`
 - `scripts/station_data_downloader.py` → downloads daily rainfall/max/min data
+- `scripts/download_current_temps.py` → downloads current-station max/min temp zips + writes station list
 
 ## Database
 - Target DB: `bom_clone_v3`
 - Station table loads from `data/output/station_table_known_state.csv` (state is required).
+
+## Current temperature quick update
+Use this when you only want to refresh max/min temperature data for stations that are
+already current in the temp tables (based on the global max dates).
+
+1) Download current-station max/min zips and write the station list:
+   ```bash
+   python3 scripts/download_current_temps.py --force
+   ```
+
+2) Extract + load only max/min temps for that station list:
+   ```bash
+   python3 scripts/load_daily_data.py \
+     --stations-file data/output/current_temp_stations.txt \
+     --data-types daily_max_temperature,daily_min_temperature \
+     --force-extract
+   ```
+
+Or run the wrapper:
+   ```bash
+   ./scripts/update_current_temps.sh
+   ```
 
 ## Git Hygiene
 - Never commit `config.ini` or large data directories under `data/`.

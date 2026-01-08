@@ -2,6 +2,7 @@
 import argparse
 import csv
 import os
+import re
 import zipfile
 from pathlib import Path
 
@@ -56,7 +57,49 @@ def safe_extract(archive, members, extract_dir):
         archive.extract(member, path=extract_dir)
 
 
-def extract_all_zips(zip_dir, extract_dir, error_log=None, delete_bad=False):
+def parse_station_number(filename):
+    parts = filename.split("_")
+    if len(parts) < 3:
+        return None
+    try:
+        return int(parts[1])
+    except ValueError:
+        return None
+
+
+def parse_data_code(filename):
+    parts = filename.split("_")
+    if not parts:
+        return None
+    product_code = parts[0]
+    if len(product_code) < 2:
+        return None
+    return product_code[-2:]
+
+
+def load_station_numbers(stations_file):
+    stations = set()
+    if not stations_file:
+        return stations
+    with open(stations_file, "r", encoding="utf-8") as handle:
+        for line in handle:
+            for match in re.findall(r"\d+", line):
+                try:
+                    stations.add(int(match))
+                except ValueError:
+                    continue
+    return stations
+
+
+def extract_all_zips(
+    zip_dir,
+    extract_dir,
+    error_log=None,
+    delete_bad=False,
+    stations=None,
+    allowed_data_codes=None,
+    force_extract=False,
+):
     zip_dir = Path(zip_dir)
     extract_dir = Path(extract_dir)
     extract_dir.mkdir(parents=True, exist_ok=True)
@@ -67,6 +110,12 @@ def extract_all_zips(zip_dir, extract_dir, error_log=None, delete_bad=False):
     error_rows = []
 
     for filename in sorted(zip_dir.glob("*_1800.zip")):
+        station_number = parse_station_number(filename.name)
+        if stations and station_number not in stations:
+            continue
+        data_code = parse_data_code(filename.name)
+        if allowed_data_codes and data_code not in allowed_data_codes:
+            continue
         try:
             with zipfile.ZipFile(filename, "r") as archive:
                 data_members = [
@@ -78,7 +127,7 @@ def extract_all_zips(zip_dir, extract_dir, error_log=None, delete_bad=False):
                     skipped += 1
                     continue
 
-                needs_extract = False
+                needs_extract = force_extract
                 for member in data_members:
                     target_path = extract_dir / member
                     if not target_path.exists():
@@ -239,7 +288,7 @@ def load_station_csv(engine, table, csv_path):
     return rows_written
 
 
-def load_all_data(extract_dir, engine):
+def load_all_data(extract_dir, engine, stations=None, allowed_data_codes=None):
     extract_dir = Path(extract_dir)
     loaded = 0
 
@@ -247,7 +296,12 @@ def load_all_data(extract_dir, engine):
         parts = csv_path.name.split("_")
         if len(parts) < 3:
             continue
+        station_number = parse_station_number(csv_path.name)
+        if stations and station_number not in stations:
+            continue
         data_type = parts[0][-2:]
+        if allowed_data_codes and data_type not in allowed_data_codes:
+            continue
         table = None
         for table_name, code in DATA_TYPES.items():
             if code == data_type:
@@ -287,12 +341,37 @@ def main():
         action="store_true",
         help="Attempt to re-download corrupt zip files.",
     )
+    parser.add_argument(
+        "--stations-file",
+        default=None,
+        help="Filter extract/load to stations listed in this file.",
+    )
+    parser.add_argument(
+        "--data-types",
+        default=None,
+        help="Comma-separated data types to load (daily_max_temperature,daily_min_temperature,daily_rainfall).",
+    )
+    parser.add_argument(
+        "--force-extract",
+        action="store_true",
+        help="Force re-extraction even if CSVs already exist.",
+    )
     args = parser.parse_args()
 
     config = load_config()
     paths = get_paths(config)
     zip_dir = paths.get("zip_dir", "./data/zips")
     extract_dir = paths.get("extract_dir", "./data/extracted")
+
+    stations = load_station_numbers(args.stations_file)
+    allowed_data_codes = None
+    if args.data_types:
+        requested = {item.strip() for item in args.data_types.split(",") if item.strip()}
+        allowed_data_codes = {
+            DATA_TYPES[name] for name in requested if name in DATA_TYPES
+        }
+        if not allowed_data_codes:
+            raise ValueError("No valid data types provided.")
 
     bad_zip_paths = []
     if not args.load_only:
@@ -302,6 +381,9 @@ def main():
             extract_dir,
             error_log=error_log,
             delete_bad=args.delete_bad_zips,
+            stations=stations,
+            allowed_data_codes=allowed_data_codes,
+            force_extract=args.force_extract,
         )
         if error_log.exists():
             with open(error_log, "r", encoding="utf-8") as handle:
@@ -343,13 +425,21 @@ def main():
                 extract_dir,
                 error_log=error_log,
                 delete_bad=args.delete_bad_zips,
+                stations=stations,
+                allowed_data_codes=allowed_data_codes,
+                force_extract=args.force_extract,
             )
         return
 
     engine = create_engine(get_sqlalchemy_url(config["Database"]))
     ensure_stage_tables(engine)
     ensure_unique_indexes(engine)
-    load_all_data(extract_dir, engine)
+    load_all_data(
+        extract_dir,
+        engine,
+        stations=stations,
+        allowed_data_codes=allowed_data_codes,
+    )
 
 
 if __name__ == "__main__":
