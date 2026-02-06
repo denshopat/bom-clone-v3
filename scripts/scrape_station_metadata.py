@@ -251,6 +251,8 @@ def parse_station_metadata(text):
             [
                 r"Elevation:\s*([0-9]+(?:\.\d+)?)",
                 r"Station Height\s*([0-9]+(?:\.\d+)?)\s*m",
+                r"([0-9]+(?:\.\d+)?)\s*m\s+Station Height",
+                r"([0-9]+(?:\.\d+)?)\s*m\s+Elevation",
             ],
             full_text,
         )
@@ -259,8 +261,10 @@ def parse_station_metadata(text):
     record["bar_height"] = normalize_float(
         extract_first(
             [
-                r"Barometer Elev:\s*([0-9]+(?:\.\d+)?)\s*m",
+                r"([0-9]+(?:\.\d+)?)\s*m\s+Barometer Height",
                 r"Barometer Height\s*([0-9]+(?:\.\d+)?)\s*m",
+                r"([0-9]+(?:\.\d+)?)\s*m\s+Barometer Elev",
+                r"Barometer Elev:\s*([0-9]+(?:\.\d+)?)\s*m",
             ],
             full_text,
         )

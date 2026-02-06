@@ -25,7 +25,6 @@ SYSTEMS = [
 ]
 
 STOP_PREFIXES = (
-    "Historical metadata for this site",
     "The following table summarises",
     "The following notes have been compiled",
     "Station Detail Changes",

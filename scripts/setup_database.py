@@ -47,6 +47,11 @@ def load_station_table(db_name, csv_path):
 
 def load_equipment_tables(db_name, events_csv, elements_csv, tables_sql):
     run_psql(db_name, "-f", str(tables_sql))
+    run_psql(
+        db_name,
+        "-c",
+        "TRUNCATE station_equipment_event, station_equipment_element RESTART IDENTITY;",
+    )
 
     copy_events = (
         "\\copy station_equipment_event_stage "
