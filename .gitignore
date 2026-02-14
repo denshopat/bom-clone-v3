@@ -9,6 +9,10 @@ __pycache__/
 /data/output/
 /data/logs/
 
+# Local analysis artifacts (charts, ad-hoc exports, scratch outputs)
+/artifacts/*
+!/artifacts/.gitkeep
+
 # Local config overrides
 .env
 
