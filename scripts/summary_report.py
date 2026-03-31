@@ -4,6 +4,7 @@ import time
 from pathlib import Path
 
 import psycopg2
+from psycopg2 import sql
 
 from config import get_db_params, load_config
 
@@ -34,7 +35,7 @@ def db_counts(db_params):
                     "daily_max_temperature",
                     "daily_min_temperature",
                 ]:
-                    cursor.execute(f"SELECT COUNT(*) FROM {table};")
+                    cursor.execute(sql.SQL("SELECT COUNT(*) FROM {};").format(sql.Identifier(table)))
                     counts[table] = cursor.fetchone()[0]
     except Exception as exc:
         counts["error"] = str(exc)

@@ -19,6 +19,15 @@ DATA_TYPES = {
     "daily_min_temperature": "11",
 }
 
+ALLOWED_TABLES = frozenset(DATA_TYPES.keys())
+ALLOWED_STAGE_TABLES = frozenset(f"{t}_stage" for t in DATA_TYPES)
+ALL_ALLOWED_TABLES = ALLOWED_TABLES | ALLOWED_STAGE_TABLES
+
+
+def _check_table(name):
+    if name not in ALL_ALLOWED_TABLES:
+        raise ValueError(f"Unexpected table name: {name}")
+
 INSERT_COLUMNS = {
     "daily_rainfall": [
         "bom_station_number",
@@ -207,13 +216,14 @@ def ensure_stage_tables(engine):
     }
     with engine.begin() as conn:
         for target, stage in stage_tables.items():
+            _check_table(target)
+            _check_table(stage)
             conn.execute(
                 text(
                     f"CREATE TABLE IF NOT EXISTS {stage} "
                     f"(LIKE {target} INCLUDING DEFAULTS)"
                 )
             )
-            # Make stage tables nullable for id and drop defaults/constraints.
             conn.execute(text(f"ALTER TABLE {stage} ALTER COLUMN id DROP NOT NULL"))
             conn.execute(text(f"ALTER TABLE {stage} ALTER COLUMN id DROP DEFAULT"))
             conn.execute(text(f"ALTER TABLE {stage} ALTER COLUMN id DROP IDENTITY IF EXISTS"))
@@ -251,6 +261,8 @@ def load_station_csv(engine, table, csv_path):
 
     rows_written = 0
     stage_table = f"{table}_stage"
+    _check_table(table)
+    _check_table(stage_table)
     insert_columns = INSERT_COLUMNS.get(table, [])
     if not insert_columns:
         return 0

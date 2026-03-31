@@ -4,7 +4,7 @@
 This repo builds and maintains a BOM clone database (stations, equipment history, and daily rainfall/max/min temperature data).
 
 ## Project Roots
-- Repo root: `REPO_ROOT`
+- Repo root: `.` (this repository)
 - Station metadata PDFs: `data/metadata/`
 - BOM station lists: `data/lists/alphaAUS_3.txt`, `data/lists/numAUS_139.txt`
 - Downloaded zips: `data/zips/`
@@ -24,6 +24,14 @@ This repo builds and maintains a BOM clone database (stations, equipment history
 ## Database
 - Target DB: `bom_clone_v3`
 - Station table loads from `data/output/station_table_known_state.csv` (state is required).
+
+## Rainfall Query Caution
+- `daily_rainfall` is much larger than the temperature tables. Broad national queries can hit PostgreSQL temp-file limits.
+- Avoid expensive whole-table CTEs that group by `EXTRACT(YEAR FROM date)` before filtering stations.
+- Prefer direct date-range filters like `date BETWEEN '1910-01-01' AND '2025-12-31'`.
+- For rainfall analyses, summarise station coverage with simple station-level `MIN(date)`, `MAX(date)`, and `COUNT(*)` queries.
+- When building annual rainfall series, chunk by `bom_station_number` and push the station filter into SQL early.
+- If running large rainfall builds locally, prefer sequential runs over parallel runs to reduce temp-disk pressure.
 
 ## Current temperature quick update
 Use this when you only want to refresh max/min temperature data for stations that are

@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 import base64
+import html
 import io
 import time
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 import psycopg2
+from psycopg2 import sql
 import warnings
 
 from config import get_db_params, load_config
@@ -26,14 +28,14 @@ warnings.filterwarnings(
 def fetch_yearly_counts(conn, table):
     with conn.cursor() as cursor:
         cursor.execute(
-            f"""
+            sql.SQL("""
             SELECT EXTRACT(YEAR FROM date)::int AS year,
                    COUNT(*) AS rows,
                    COUNT(DISTINCT bom_station_number) AS stations
-            FROM {table}
+            FROM {}
             GROUP BY year
             ORDER BY year;
-            """
+            """).format(sql.Identifier(table))
         )
         return cursor.fetchall()
 
@@ -74,7 +76,7 @@ def main():
             for table in TABLES:
                 summary["db_tables"][table] = {}
                 with conn.cursor() as cursor:
-                    cursor.execute(f"SELECT COUNT(*) FROM {table};")
+                    cursor.execute(sql.SQL("SELECT COUNT(*) FROM {};").format(sql.Identifier(table)))
                     summary["db_tables"][table]["rows"] = cursor.fetchone()[0]
 
             with conn.cursor() as cursor:
@@ -92,8 +94,8 @@ def main():
                 yearly_stations[label] = (years, station_counts)
 
     except Exception as exc:
-        error_html = f"<p><strong>Database error:</strong> {exc}</p>"
-        html = f"""<!doctype html>
+        error_html = f"<p><strong>Database error:</strong> {html.escape(str(exc))}</p>"
+        page_html = f"""<!doctype html>
 <html>
 <head>
   <meta charset=\"utf-8\" />
@@ -104,7 +106,7 @@ def main():
   {error_html}
 </body>
 </html>"""
-        (output_dir / "analytics.html").write_text(html, encoding="utf-8")
+        (output_dir / "analytics.html").write_text(page_html, encoding="utf-8")
         return
 
     rows_chart = plot_lines(yearly_rows, "Rows per Year", "Rows")
@@ -115,7 +117,7 @@ def main():
         for table in TABLES
     )
 
-    html = f"""<!doctype html>
+    page_html = f"""<!doctype html>
 <html>
 <head>
   <meta charset=\"utf-8\" />
@@ -143,7 +145,7 @@ def main():
 </body>
 </html>"""
 
-    (output_dir / "analytics.html").write_text(html, encoding="utf-8")
+    (output_dir / "analytics.html").write_text(page_html, encoding="utf-8")
     (output_dir / "analytics.json").write_text(json_dump(summary), encoding="utf-8")
 
 

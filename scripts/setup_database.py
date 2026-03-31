@@ -4,6 +4,7 @@ import subprocess
 from pathlib import Path
 
 import psycopg2
+from psycopg2 import sql
 
 from config import get_db_params, load_config
 
@@ -22,7 +23,7 @@ def ensure_database(db_params):
             )
             exists = cursor.fetchone() is not None
             if not exists:
-                cursor.execute(f'CREATE DATABASE "{db_name}";')
+                cursor.execute(sql.SQL("CREATE DATABASE {};").format(sql.Identifier(db_name)))
 
 
 def run_psql(db_name, *args):

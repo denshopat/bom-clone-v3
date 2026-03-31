@@ -12,8 +12,45 @@ __pycache__/
 # Local analysis artifacts (charts, ad-hoc exports, scratch outputs)
 /artifacts/*
 !/artifacts/.gitkeep
+/side_projects/
 
 # Local config overrides
 .env
-
 config.ini
+
+# IDE / editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Python environments
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+
+# Tool caches
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# Logs
+*.log
+
+# Secrets / certificates
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+
+# Database files
+*.db
+*.sqlite3
+
+# Tool-specific
+CODEXRESUME
