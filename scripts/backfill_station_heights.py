@@ -12,9 +12,9 @@ from psycopg2.extras import execute_values
 SCRIPT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPT_DIR))
 
+from bom_client import metadata_pdf_filename
 from config import get_db_params, load_config
 from scrape_station_metadata import extract_text_first_page, parse_station_metadata
-from station_list_compare import station_number_to_pdf_name
 
 
 def read_metadata_record(pdf_path):
@@ -50,7 +50,7 @@ def backfill_csv_rows(rows, metadata_dir, *, overwrite=False):
             updated_rows.append(row)
             continue
 
-        pdf_path = metadata_dir / station_number_to_pdf_name(station_number_int)
+        pdf_path = metadata_dir / metadata_pdf_filename(station_number_int)
         if not pdf_path.exists():
             updated_rows.append(row)
             continue

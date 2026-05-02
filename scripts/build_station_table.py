@@ -12,12 +12,12 @@ from pathlib import Path
 SCRIPT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPT_DIR))
 
+from bom_client import metadata_pdf_filename
 from scrape_station_metadata import extract_text_first_page, parse_station_metadata
 from station_list_compare import (
     collect_pdf_station_numbers,
-    download_metadata_pdf,
     parse_station_list,
-    station_number_to_pdf_name,
+    save_metadata_pdf,
 )
 
 
@@ -149,7 +149,7 @@ def main():
         if args.download_limit is not None:
             to_download = to_download[: args.download_limit]
         for site in to_download:
-            ok, err = download_metadata_pdf(site, metadata_dir)
+            ok, err = save_metadata_pdf(site, metadata_dir)
             if not ok:
                 download_errors.append([site, err])
             time.sleep(args.download_sleep)
@@ -190,7 +190,7 @@ def main():
         writer.writeheader()
 
         for site in all_sites:
-            pdf_name = station_number_to_pdf_name(site)
+            pdf_name = metadata_pdf_filename(site)
             pdf_path = metadata_dir / pdf_name
             metadata = {}
             if pdf_path.exists():

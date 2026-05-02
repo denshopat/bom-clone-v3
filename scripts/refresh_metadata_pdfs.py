@@ -10,7 +10,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPT_DIR))
 
 from scrape_station_metadata import extract_text_first_page
-from station_list_compare import download_metadata_pdf, station_number_to_pdf_name
+from station_list_compare import save_metadata_pdf
 
 
 def station_number_from_filename(filename):
@@ -83,7 +83,7 @@ def main():
 
     download_errors = []
     for station_number in bad_station_numbers:
-        ok, err = download_metadata_pdf(station_number, metadata_dir)
+        ok, err = save_metadata_pdf(station_number, metadata_dir)
         if not ok:
             download_errors.append([station_number, err])
 

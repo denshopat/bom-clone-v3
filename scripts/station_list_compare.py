@@ -7,12 +7,16 @@ import re
 import sys
 import time
 from pathlib import Path
-from urllib.error import HTTPError, URLError
-from urllib.request import urlopen
 import csv
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPT_DIR))
+
+from bom_client import (
+    BomFetchError,
+    fetch_metadata_pdf,
+    metadata_pdf_filename,
+)
 
 
 LIST_LINE_WITH_OBS_RE = re.compile(
@@ -89,10 +93,6 @@ def parse_station_list(file_path):
     return records
 
 
-def station_number_to_pdf_name(station_number):
-    return f"IDCJMD0040.{station_number:06d}.SiteInfo.pdf"
-
-
 def collect_pdf_station_numbers(metadata_dir):
     station_numbers = set()
     for pdf_path in metadata_dir.glob("IDCJMD0040.*.SiteInfo.pdf"):
@@ -106,23 +106,16 @@ def collect_pdf_station_numbers(metadata_dir):
     return station_numbers
 
 
-def download_metadata_pdf(station_number, dest_dir, timeout=20):
-    filename = station_number_to_pdf_name(station_number)
-    url = f"https://www.bom.gov.au/clim_data/cdio/metadata/pdf/siteinfo/{filename}"
-    dest_path = dest_dir / filename
-
+def save_metadata_pdf(station_number, dest_dir):
+    """Fetch a metadata PDF and write it to dest_dir.
+    Returns (ok, error_message). The caller decides what to do with errors."""
     try:
-        with urlopen(url, timeout=timeout) as resp:
-            if resp.status != 200:
-                return False, f"HTTP {resp.status}"
-            dest_path.write_bytes(resp.read())
-        return True, ""
-    except HTTPError as exc:
-        return False, f"HTTP {exc.code}"
-    except URLError as exc:
-        return False, str(exc.reason)
-    except Exception as exc:
+        body = fetch_metadata_pdf(station_number)
+    except BomFetchError as exc:
         return False, str(exc)
+    dest_path = Path(dest_dir) / metadata_pdf_filename(station_number)
+    dest_path.write_bytes(body)
+    return True, ""
 
 
 def main():
@@ -257,7 +250,7 @@ def main():
             writer = csv.writer(handle)
             writer.writerow(["station_number", "station_name"])
             for site in extra_sites:
-                pdf_name = station_number_to_pdf_name(site)
+                pdf_name = metadata_pdf_filename(site)
                 pdf_path = metadata_dir / pdf_name
                 station_name = ""
                 if pdf_path.exists():
@@ -284,7 +277,7 @@ def main():
 
         print("\nDownloading missing metadata PDFs:")
         for site in to_download:
-            ok, err = download_metadata_pdf(site, metadata_dir)
+            ok, err = save_metadata_pdf(site, metadata_dir)
             if ok:
                 print(f"{site}: ok")
             else:

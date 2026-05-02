@@ -1,37 +1,16 @@
 #!/usr/bin/env python3
 import argparse
 import csv
+import sys
 import tempfile
 import time
-import urllib.request
 from pathlib import Path
 
+SCRIPT_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(SCRIPT_DIR))
+
+from bom_client import BomFetchError, fetch_metadata_pdf, metadata_pdf_filename
 from station_list_compare import parse_station_list
-
-
-BASE_URL = "https://www.bom.gov.au/clim_data/cdio/metadata/pdf/siteinfo"
-
-
-def station_number_to_pdf_name(station_number):
-    return f"IDCJMD0040.{station_number:06d}.SiteInfo.pdf"
-
-
-def fetch_pdf(url, timeout=30):
-    headers = {
-        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) Gecko/20100101 Firefox/115.0",
-        "Accept": "application/pdf,text/html",
-    }
-    request = urllib.request.Request(url, headers=headers)
-    with urllib.request.urlopen(request, timeout=timeout) as resp:
-        content_type = resp.info().get("Content-Type", "")
-        data = resp.read()
-    return content_type, data
-
-
-def is_pdf(content_type, data):
-    if "application/pdf" in content_type.lower():
-        return True
-    return data.startswith(b"%PDF")
 
 
 def write_atomic(path, data):
@@ -97,7 +76,7 @@ def main():
         stations = stations[: args.limit]
 
     for station_number in stations:
-        filename = station_number_to_pdf_name(station_number)
+        filename = metadata_pdf_filename(station_number)
         dest_path = metadata_dir / filename
 
         if dest_path.exists() and dest_path.stat().st_size > 0:
@@ -109,24 +88,22 @@ def main():
             except OSError:
                 pass
 
-        url = f"{BASE_URL}/{filename}"
         try:
-            content_type, data = fetch_pdf(url)
-            if not is_pdf(content_type, data):
-                failures.append([station_number, url, "not_pdf"])
-                continue
-            write_atomic(dest_path, data)
-            downloaded += 1
-        except Exception as exc:
-            failures.append([station_number, url, str(exc)])
+            body = fetch_metadata_pdf(station_number)
+        except BomFetchError as exc:
+            failures.append([station_number, str(exc)])
+            time.sleep(args.sleep)
+            continue
 
+        write_atomic(dest_path, body)
+        downloaded += 1
         time.sleep(args.sleep)
 
     if failures:
         Path(args.log_file).parent.mkdir(parents=True, exist_ok=True)
         with open(args.log_file, "w", newline="", encoding="utf-8") as handle:
             writer = csv.writer(handle)
-            writer.writerow(["station_number", "url", "error"])
+            writer.writerow(["station_number", "error"])
             writer.writerows(failures)
 
     print(

@@ -14,14 +14,18 @@ PROJECT_DIR = SCRIPT_DIR.parent
 sys.path.insert(0, str(SCRIPT_DIR))
 sys.path.insert(0, str(PROJECT_DIR))
 
+from bom_client import (
+    BomFetchError,
+    BomNotFoundError,
+    obs_code_for,
+    observation_zip_filename,
+)
 from config import get_db_params, get_paths, load_config
 from station_data_downloader import (
-    OBS_CODES,
-    download_zip,
-    fetch_all_years_url,
     load_existing_files,
     load_resume_state,
     resolve_log_file,
+    save_observation_zip,
     write_log_row,
 )
 
@@ -252,11 +256,8 @@ def main():
                 resume_state.pop((redo_station, redo_obs), None)
 
         for station_number, category in planned:
-            obs_code = OBS_CODES[category]
-            if category == "max_temp":
-                expected_prefix = "IDCJAC0010"
-            else:
-                expected_prefix = "IDCJAC0011"
+            obs_code = obs_code_for(category)
+            expected_prefix = observation_zip_filename(station_number, category).split("_", 1)[0]
 
             if args.force:
                 removed = remove_existing_files(
@@ -330,10 +331,22 @@ def main():
                 continue
 
             try:
-                source_url, all_years_url = fetch_all_years_url(
-                    station_number, obs_code
+                zip_path = save_observation_zip(station_number, category, download_dir)
+            except BomNotFoundError:
+                no_data += 1
+                write_log_row(
+                    writer,
+                    station_number,
+                    obs_code,
+                    "no_data",
+                    "all_years_link_missing",
+                    "",
+                    "",
                 )
-            except Exception as exc:
+                if args.verbose:
+                    print(f"no_data {station_number} {obs_code}")
+                continue
+            except BomFetchError as exc:
                 errors += 1
                 write_log_row(
                     writer,
@@ -348,51 +361,19 @@ def main():
                     print(f"error {station_number} {obs_code} (fetch_failed)")
                 continue
 
-            if not all_years_url:
-                no_data += 1
-                write_log_row(
-                    writer,
-                    station_number,
-                    obs_code,
-                    "no_data",
-                    "all_years_link_missing",
-                    source_url,
-                    "",
-                )
-                if args.verbose:
-                    print(f"no_data {station_number} {obs_code}")
-                continue
-
-            try:
-                zip_path = download_zip(
-                    all_years_url, download_dir, station_number, obs_code
-                )
-                existing_files.add(zip_path.name)
-                downloaded += 1
-                write_log_row(
-                    writer,
-                    station_number,
-                    obs_code,
-                    "downloaded",
-                    "",
-                    all_years_url,
-                    str(zip_path),
-                )
-                if args.verbose:
-                    print(f"downloaded {station_number} {obs_code} -> {zip_path.name}")
-            except Exception as exc:
-                errors += 1
-                write_log_row(
-                    writer,
-                    station_number,
-                    obs_code,
-                    "error",
-                    f"download_failed: {exc}",
-                    all_years_url,
-                    "",
-                )
-                if args.verbose:
-                    print(f"error {station_number} {obs_code} (download_failed)")
+            existing_files.add(zip_path.name)
+            downloaded += 1
+            write_log_row(
+                writer,
+                station_number,
+                obs_code,
+                "downloaded",
+                "",
+                "",
+                str(zip_path),
+            )
+            if args.verbose:
+                print(f"downloaded {station_number} {obs_code} -> {zip_path.name}")
             time.sleep(args.sleep)
 
     print(

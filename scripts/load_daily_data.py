@@ -404,34 +404,32 @@ def main():
 
     if args.extract_only:
         if args.redownload_bad_zips and bad_zip_paths:
-            from station_data_downloader import fetch_all_years_url, download_zip
+            from bom_client import (
+                BomFetchError,
+                fetch_observation_zip,
+                observation_zip_filename,
+                product_from_zip_filename,
+            )
 
             for zip_path in bad_zip_paths:
                 filename = Path(zip_path).name
                 parts = filename.split("_")
                 if len(parts) < 3:
                     continue
-                product_code = parts[0]
-                station_number = parts[1]
-                obs_code = None
-                for code, product in {
-                    "136": "IDCJAC0009",
-                    "122": "IDCJAC0010",
-                    "123": "IDCJAC0011",
-                }.items():
-                    if product == product_code:
-                        obs_code = code
-                        break
-                if not obs_code:
+                product = product_from_zip_filename(filename)
+                if product is None:
+                    continue
+                try:
+                    station_number = int(parts[1])
+                except ValueError:
                     continue
 
                 try:
-                    _, all_years_url = fetch_all_years_url(station_number, obs_code)
-                    if not all_years_url:
-                        continue
-                    download_zip(all_years_url, zip_dir, station_number, obs_code)
-                except Exception:
+                    body = fetch_observation_zip(station_number, product)
+                except BomFetchError:
                     continue
+                dest = Path(zip_dir) / observation_zip_filename(station_number, product)
+                dest.write_bytes(body)
             extract_all_zips(
                 zip_dir,
                 extract_dir,

@@ -1,13 +1,10 @@
 #!/usr/bin/env python3
 import argparse
 import csv
-import html
 import os
 import re
 import sys
 import time
-import urllib.parse
-import urllib.request
 from pathlib import Path
 
 import psycopg2
@@ -17,21 +14,14 @@ PROJECT_DIR = SCRIPT_DIR.parent
 sys.path.insert(0, str(SCRIPT_DIR))
 sys.path.insert(0, str(PROJECT_DIR))
 
+from bom_client import (
+    BomFetchError,
+    BomNotFoundError,
+    fetch_observation_zip,
+    obs_code_for,
+    observation_zip_filename,
+)
 from config import get_db_params, get_paths, load_config
-
-
-BASE_URL = "https://www.bom.gov.au/jsp/ncc/cdio/weatherData/av"
-OBS_CODES = {
-    "rainfall": "136",  # IDCJAC0009
-    "max_temp": "122",  # IDCJAC0010
-    "min_temp": "123",  # IDCJAC0011
-}
-
-PRODUCT_CODES = {
-    "136": "IDCJAC0009",
-    "122": "IDCJAC0010",
-    "123": "IDCJAC0011",
-}
 
 
 def parse_station_list(file_path):
@@ -106,69 +96,6 @@ def build_station_sets(alpha_path, num_path, conn_params):
     return temp_stations, rain_stations
 
 
-def find_all_years_link(html_text):
-    patterns = [
-        r'href="([^"]+)"[^>]*>All years of data',
-        r'href="([^"]+)"[^>]*>All Years of Data',
-    ]
-    for pattern in patterns:
-        match = re.search(pattern, html_text, flags=re.IGNORECASE)
-        if match:
-            return html.unescape(match.group(1))
-    return None
-
-
-def fetch_all_years_url(station_number, obs_code, timeout=30):
-    params = {
-        "p_nccObsCode": obs_code,
-        "p_display_type": "dailyDataFile",
-        "p_stn_num": str(station_number),
-    }
-    url = f"{BASE_URL}?{urllib.parse.urlencode(params)}"
-    headers = {
-        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) Gecko/20100101 Firefox/115.0",
-        "Accept": "text/html,application/xhtml+xml",
-    }
-    request = urllib.request.Request(url, headers=headers)
-    with urllib.request.urlopen(request, timeout=timeout) as resp:
-        html = resp.read().decode("utf-8", errors="ignore")
-
-    link = find_all_years_link(html)
-    if not link:
-        return url, None
-
-    if link.startswith("/"):
-        link = urllib.parse.urljoin("https://www.bom.gov.au", link)
-    return url, link
-
-
-def download_zip(url, download_dir, station_number, obs_code, timeout=60):
-    headers = {
-        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) Gecko/20100101 Firefox/115.0",
-    }
-    request = urllib.request.Request(url, headers=headers)
-    with urllib.request.urlopen(request, timeout=timeout) as resp:
-        content_disposition = resp.info().get("Content-Disposition", "")
-        content_type = resp.info().get("Content-Type", "")
-        match = re.search(r"filename=([^;]+)", content_disposition)
-        if match:
-            filename = match.group(1).strip().strip('"')
-        else:
-            filename = os.path.basename(urllib.parse.urlparse(resp.geturl()).path)
-        data = resp.read()
-
-    if "text/html" in (content_type or "").lower():
-        raise ValueError("downloaded HTML instead of zip")
-
-    if not filename or filename == "av":
-        product_code = PRODUCT_CODES.get(obs_code, "IDCJAC0000")
-        filename = f"{product_code}_{int(station_number)}_1800.zip"
-
-    download_path = Path(download_dir) / filename
-    download_path.write_bytes(data)
-    return download_path
-
-
 def load_existing_files(download_dir):
     existing = set()
     if not os.path.isdir(download_dir):
@@ -224,6 +151,15 @@ def write_log_row(writer, station_number, obs_code, status, message, source_url,
             "file_path": file_path,
         }
     )
+
+
+def save_observation_zip(station_number, product, download_dir):
+    """Fetch a per-station observation zip and write it to download_dir
+    using the canonical BOM filename. Returns the destination Path."""
+    body = fetch_observation_zip(station_number, product)
+    dest = Path(download_dir) / observation_zip_filename(station_number, product)
+    dest.write_bytes(body)
+    return dest
 
 
 def main():
@@ -351,15 +287,10 @@ def main():
             if redo_station and redo_obs:
                 resume_state.pop((redo_station, redo_obs), None)
 
-        for station_number, category in planned:
-            obs_code = OBS_CODES[category]
-
-            if category == "rainfall":
-                expected_prefix = "IDCJAC0009"
-            elif category == "max_temp":
-                expected_prefix = "IDCJAC0010"
-            else:
-                expected_prefix = "IDCJAC0011"
+        for station_number, product in planned:
+            obs_code = obs_code_for(product)
+            expected_filename = observation_zip_filename(station_number, product)
+            expected_prefix = expected_filename.split("_", 1)[0]
 
             already_downloaded = any(
                 name.startswith(expected_prefix)
@@ -412,7 +343,7 @@ def main():
 
             if args.dry_run:
                 dry_runs += 1
-                print(f"Would fetch {station_number} ({category})")
+                print(f"Would fetch {station_number} ({product})")
                 write_log_row(
                     writer,
                     station_number,
@@ -425,10 +356,22 @@ def main():
                 continue
 
             try:
-                source_url, all_years_url = fetch_all_years_url(
-                    station_number, obs_code
+                zip_path = save_observation_zip(station_number, product, download_dir)
+            except BomNotFoundError as exc:
+                no_data += 1
+                write_log_row(
+                    writer,
+                    station_number,
+                    obs_code,
+                    "no_data",
+                    "all_years_link_missing",
+                    "",
+                    "",
                 )
-            except Exception as exc:
+                if args.verbose:
+                    print(f"no_data {station_number} {obs_code}")
+                continue
+            except BomFetchError as exc:
                 errors += 1
                 write_log_row(
                     writer,
@@ -443,49 +386,19 @@ def main():
                     print(f"error {station_number} {obs_code} (fetch_failed)")
                 continue
 
-            if not all_years_url:
-                no_data += 1
-                write_log_row(
-                    writer,
-                    station_number,
-                    obs_code,
-                    "no_data",
-                    "all_years_link_missing",
-                    source_url,
-                    "",
-                )
-                if args.verbose:
-                    print(f"no_data {station_number} {obs_code}")
-                continue
-
-            try:
-                zip_path = download_zip(all_years_url, download_dir, station_number, obs_code)
-                existing_files.add(zip_path.name)
-                downloaded += 1
-                write_log_row(
-                    writer,
-                    station_number,
-                    obs_code,
-                    "downloaded",
-                    "",
-                    all_years_url,
-                    str(zip_path),
-                )
-                if args.verbose:
-                    print(f"downloaded {station_number} {obs_code} -> {zip_path.name}")
-            except Exception as exc:
-                errors += 1
-                write_log_row(
-                    writer,
-                    station_number,
-                    obs_code,
-                    "error",
-                    f"download_failed: {exc}",
-                    all_years_url,
-                    "",
-                )
-                if args.verbose:
-                    print(f"error {station_number} {obs_code} (download_failed)")
+            existing_files.add(zip_path.name)
+            downloaded += 1
+            write_log_row(
+                writer,
+                station_number,
+                obs_code,
+                "downloaded",
+                "",
+                "",
+                str(zip_path),
+            )
+            if args.verbose:
+                print(f"downloaded {station_number} {obs_code} -> {zip_path.name}")
             time.sleep(args.sleep)
 
     print(
