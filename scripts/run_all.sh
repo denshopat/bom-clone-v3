@@ -4,6 +4,8 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 STATE_FILE="$REPO_ROOT/data/logs/run_state.env"
 
+export PYTHONUNBUFFERED=1
+
 mkdir -p "$REPO_ROOT/data/logs"
 cd "$REPO_ROOT"
 
@@ -118,39 +120,39 @@ load_state
 echo "State file: $STATE_FILE"
 echo "Last step: ${LAST_STEP:-none}"
 
-env PYTHONUNBUFFERED=1 run_step 1 "update_lists" \
+run_step 1 "update_lists" \
   python3 scripts/update_station_lists.py
 python3 scripts/update_status.py
 
-env PYTHONUNBUFFERED=1 run_step 2 "download_metadata" \
+run_step 2 "download_metadata" \
   python3 scripts/download_metadata_pdfs.py
 python3 scripts/update_status.py
 
-env PYTHONUNBUFFERED=1 run_step 3 "refresh_metadata" \
+run_step 3 "refresh_metadata" \
   python3 scripts/refresh_metadata_pdfs.py
 python3 scripts/update_status.py
 
-env PYTHONUNBUFFERED=1 run_step 4 "build_station_table" \
+run_step 4 "build_station_table" \
   python3 scripts/build_station_table.py
 python3 scripts/update_status.py
 
-env PYTHONUNBUFFERED=1 run_step 5 "setup_database" \
+run_step 5 "setup_database" \
   python3 scripts/setup_database.py
 python3 scripts/update_status.py
 
-env PYTHONUNBUFFERED=1 run_step 6 "extract_equipment" \
+run_step 6 "extract_equipment" \
   python3 scripts/extract_equipment_history.py
 python3 scripts/update_status.py
 
-env PYTHONUNBUFFERED=1 run_step 7 "setup_equipment" \
+run_step 7 "setup_equipment" \
   python3 scripts/setup_database.py --skip-stations
 python3 scripts/update_status.py
 
-env PYTHONUNBUFFERED=1 run_step 8 "download_zips" \
+run_step 8 "download_zips" \
   python3 scripts/station_data_downloader.py --verbose
 python3 scripts/update_status.py
 
-env PYTHONUNBUFFERED=1 run_step 9 "load_daily_data" \
+run_step 9 "load_daily_data" \
   python3 scripts/load_daily_data.py --delete-bad-zips --redownload-bad-zips
 python3 scripts/update_status.py
 
