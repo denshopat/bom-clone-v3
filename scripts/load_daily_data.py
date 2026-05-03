@@ -259,7 +259,7 @@ def load_station_csv(engine, table, csv_path):
     except EmptyDataError:
         return 0
 
-    rows_written = 0
+    rows_inserted = 0
     stage_table = f"{table}_stage"
     _check_table(table)
     _check_table(stage_table)
@@ -282,7 +282,7 @@ def load_station_csv(engine, table, csv_path):
 
         with engine.begin() as conn:
             columns_sql = ", ".join(insert_columns)
-            conn.execute(
+            result = conn.execute(
                 text(
                     f"""
                     INSERT INTO {table} ({columns_sql})
@@ -293,11 +293,10 @@ def load_station_csv(engine, table, csv_path):
                     """
                 )
             )
+            rows_inserted += result.rowcount
             conn.execute(text(f"TRUNCATE {stage_table}"))
 
-        rows_written += len(chunk)
-
-    return rows_written
+    return rows_inserted
 
 
 def load_all_data(extract_dir, engine, stations=None, allowed_data_codes=None):
@@ -324,9 +323,9 @@ def load_all_data(extract_dir, engine, stations=None, allowed_data_codes=None):
 
         rows = load_station_csv(engine, table, csv_path)
         loaded += rows
-        print(f"loaded {rows} rows from {csv_path.name} into {table}")
+        print(f"inserted {rows} new rows from {csv_path.name} into {table}")
 
-    print(f"Total rows loaded: {loaded}")
+    print(f"Total new rows inserted: {loaded}")
 
 
 def main():
