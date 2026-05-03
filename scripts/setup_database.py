@@ -27,7 +27,7 @@ def ensure_database(db_params):
 
 
 def run_psql(db_name, *args):
-    cmd = ["psql", "-d", db_name, *args]
+    cmd = ["psql", "-v", "ON_ERROR_STOP=1", "-d", db_name, *args]
     subprocess.run(cmd, check=True)
 
 

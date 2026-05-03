@@ -2,9 +2,9 @@
 -- PostgreSQL database dump
 --
 
-
--- Dumped from PostgreSQL
--- Dumped by pg_dump
+-- Originally produced by pg_dump; hand-edited to be idempotent so it can be
+-- safely re-run on an existing database. Pair with `psql -v ON_ERROR_STOP=1`
+-- to catch real schema errors instead of swallowing them as noise.
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -21,11 +21,15 @@ SET row_security = off;
 -- Name: product_code_enum; Type: TYPE; Schema: public; Owner: -
 --
 
-CREATE TYPE public.product_code_enum AS ENUM (
-    'IDCJAC0009',
-    'IDCJAC0010',
-    'IDCJAC0011'
-);
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'product_code_enum') THEN
+        CREATE TYPE public.product_code_enum AS ENUM (
+            'IDCJAC0009',
+            'IDCJAC0010',
+            'IDCJAC0011'
+        );
+    END IF;
+END $$;
 
 
 SET default_tablespace = '';
@@ -36,7 +40,7 @@ SET default_table_access_method = heap;
 -- Name: station; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.station (
+CREATE TABLE IF NOT EXISTS public.station (
     id integer NOT NULL,
     bom_station_number integer NOT NULL,
     dist integer,
@@ -65,7 +69,7 @@ CREATE TABLE public.station (
 -- Name: acornsat; Type: VIEW; Schema: public; Owner: -
 --
 
-CREATE VIEW public.acornsat AS
+CREATE OR REPLACE VIEW public.acornsat AS
  SELECT station.id,
     station.bom_station_number,
     station.dist,
@@ -95,7 +99,7 @@ CREATE VIEW public.acornsat AS
 -- Name: daily_max_temperature; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.daily_max_temperature (
+CREATE TABLE IF NOT EXISTS public.daily_max_temperature (
     id integer NOT NULL,
     bom_station_number integer NOT NULL,
     date date NOT NULL,
@@ -110,21 +114,30 @@ CREATE TABLE public.daily_max_temperature (
 -- Name: daily_max_temperature_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-ALTER TABLE public.daily_max_temperature ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
-    SEQUENCE NAME public.daily_max_temperature_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1
-);
+DO $$ BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_attribute
+        WHERE attrelid = 'public.daily_max_temperature'::regclass
+          AND attname = 'id'
+          AND attidentity <> ''
+    ) THEN
+        ALTER TABLE public.daily_max_temperature ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+            SEQUENCE NAME public.daily_max_temperature_id_seq
+            START WITH 1
+            INCREMENT BY 1
+            NO MINVALUE
+            NO MAXVALUE
+            CACHE 1
+        );
+    END IF;
+END $$;
 
 
 --
 -- Name: daily_min_temperature; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.daily_min_temperature (
+CREATE TABLE IF NOT EXISTS public.daily_min_temperature (
     id integer NOT NULL,
     bom_station_number integer NOT NULL,
     date date NOT NULL,
@@ -139,21 +152,30 @@ CREATE TABLE public.daily_min_temperature (
 -- Name: daily_min_temperature_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-ALTER TABLE public.daily_min_temperature ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
-    SEQUENCE NAME public.daily_min_temperature_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1
-);
+DO $$ BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_attribute
+        WHERE attrelid = 'public.daily_min_temperature'::regclass
+          AND attname = 'id'
+          AND attidentity <> ''
+    ) THEN
+        ALTER TABLE public.daily_min_temperature ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+            SEQUENCE NAME public.daily_min_temperature_id_seq
+            START WITH 1
+            INCREMENT BY 1
+            NO MINVALUE
+            NO MAXVALUE
+            CACHE 1
+        );
+    END IF;
+END $$;
 
 
 --
 -- Name: daily_rainfall; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.daily_rainfall (
+CREATE TABLE IF NOT EXISTS public.daily_rainfall (
     id integer NOT NULL,
     bom_station_number integer NOT NULL,
     date date NOT NULL,
@@ -168,21 +190,30 @@ CREATE TABLE public.daily_rainfall (
 -- Name: daily_rainfall_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-ALTER TABLE public.daily_rainfall ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
-    SEQUENCE NAME public.daily_rainfall_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1
-);
+DO $$ BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_attribute
+        WHERE attrelid = 'public.daily_rainfall'::regclass
+          AND attname = 'id'
+          AND attidentity <> ''
+    ) THEN
+        ALTER TABLE public.daily_rainfall ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+            SEQUENCE NAME public.daily_rainfall_id_seq
+            START WITH 1
+            INCREMENT BY 1
+            NO MINVALUE
+            NO MAXVALUE
+            CACHE 1
+        );
+    END IF;
+END $$;
 
 
 --
 -- Name: station_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE SEQUENCE public.station_id_seq
+CREATE SEQUENCE IF NOT EXISTS public.station_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -208,36 +239,58 @@ ALTER TABLE ONLY public.station ALTER COLUMN id SET DEFAULT nextval('public.stat
 -- Name: daily_max_temperature daily_max_temperature_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.daily_max_temperature
-    ADD CONSTRAINT daily_max_temperature_pkey PRIMARY KEY (id);
+DO $$ BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'daily_max_temperature_pkey'
+    ) THEN
+        ALTER TABLE ONLY public.daily_max_temperature
+            ADD CONSTRAINT daily_max_temperature_pkey PRIMARY KEY (id);
+    END IF;
+END $$;
 
 
 --
 -- Name: daily_min_temperature daily_min_temperature_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.daily_min_temperature
-    ADD CONSTRAINT daily_min_temperature_pkey PRIMARY KEY (id);
+DO $$ BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'daily_min_temperature_pkey'
+    ) THEN
+        ALTER TABLE ONLY public.daily_min_temperature
+            ADD CONSTRAINT daily_min_temperature_pkey PRIMARY KEY (id);
+    END IF;
+END $$;
 
 
 --
 -- Name: daily_rainfall daily_rainfall_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.daily_rainfall
-    ADD CONSTRAINT daily_rainfall_pkey PRIMARY KEY (id);
+DO $$ BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'daily_rainfall_pkey'
+    ) THEN
+        ALTER TABLE ONLY public.daily_rainfall
+            ADD CONSTRAINT daily_rainfall_pkey PRIMARY KEY (id);
+    END IF;
+END $$;
 
 
 --
 -- Name: station station_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.station
-    ADD CONSTRAINT station_pkey PRIMARY KEY (id);
+DO $$ BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'station_pkey'
+    ) THEN
+        ALTER TABLE ONLY public.station
+            ADD CONSTRAINT station_pkey PRIMARY KEY (id);
+    END IF;
+END $$;
 
 
 --
 -- PostgreSQL database dump complete
 --
-
-
