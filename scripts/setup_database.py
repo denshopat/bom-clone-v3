@@ -35,15 +35,74 @@ def load_schema(db_name, schema_path):
     run_psql(db_name, "-f", str(schema_path))
 
 
+STATION_CSV_COLUMNS = (
+    "bom_station_number, station_name, start_year, end_year, latitude, longitude, "
+    "source, state, height, bar_height, wmo, metadata_compiled, bom_district_name, "
+    "identification, network_classification, station_purpose, aws, status"
+)
+
+
+# Loader uses staging-table + INSERT...ON CONFLICT to upsert by bom_station_number.
+# Bare \copy used to silently double the table on every re-run because there is no
+# unique constraint on station.id and the script never truncated.
 def load_station_table(db_name, csv_path):
+    run_psql(db_name, "-c", "TRUNCATE station_stage;")
     copy_sql = (
-        "\\copy station "
-        "(bom_station_number, station_name, start_year, end_year, latitude, longitude, "
-        "source, state, height, bar_height, wmo, metadata_compiled, bom_district_name, "
-        "identification, network_classification, station_purpose, aws, status) "
+        f"\\copy station_stage ({STATION_CSV_COLUMNS}) "
         f"FROM '{csv_path}' WITH (FORMAT csv, HEADER true)"
     )
     run_psql(db_name, "-c", copy_sql)
+    run_psql(
+        db_name,
+        "-c",
+        """
+        INSERT INTO station (
+            bom_station_number, station_name, start_year, end_year,
+            latitude, longitude, source, state, height, bar_height,
+            wmo, metadata_compiled, bom_district_name, identification,
+            network_classification, station_purpose, aws, status
+        )
+        SELECT
+            bom_station_number::int,
+            station_name,
+            NULLIF(start_year, '')::int,
+            NULLIF(end_year, '')::int,
+            NULLIF(latitude, '')::double precision,
+            NULLIF(longitude, '')::double precision,
+            NULLIF(source, ''),
+            state,
+            NULLIF(height, '')::double precision,
+            NULLIF(bar_height, '')::double precision,
+            NULLIF(wmo, '')::int,
+            NULLIF(metadata_compiled, '')::date,
+            NULLIF(bom_district_name, ''),
+            NULLIF(identification, ''),
+            NULLIF(network_classification, ''),
+            NULLIF(station_purpose, ''),
+            NULLIF(aws, ''),
+            NULLIF(status, '')
+        FROM station_stage
+        ON CONFLICT (bom_station_number) DO UPDATE SET
+            station_name = EXCLUDED.station_name,
+            start_year = COALESCE(EXCLUDED.start_year, station.start_year),
+            end_year = COALESCE(EXCLUDED.end_year, station.end_year),
+            latitude = COALESCE(EXCLUDED.latitude, station.latitude),
+            longitude = COALESCE(EXCLUDED.longitude, station.longitude),
+            source = COALESCE(EXCLUDED.source, station.source),
+            state = EXCLUDED.state,
+            height = COALESCE(EXCLUDED.height, station.height),
+            bar_height = COALESCE(EXCLUDED.bar_height, station.bar_height),
+            wmo = COALESCE(EXCLUDED.wmo, station.wmo),
+            metadata_compiled = COALESCE(EXCLUDED.metadata_compiled, station.metadata_compiled),
+            bom_district_name = COALESCE(EXCLUDED.bom_district_name, station.bom_district_name),
+            identification = COALESCE(EXCLUDED.identification, station.identification),
+            network_classification = COALESCE(EXCLUDED.network_classification, station.network_classification),
+            station_purpose = COALESCE(EXCLUDED.station_purpose, station.station_purpose),
+            aws = COALESCE(EXCLUDED.aws, station.aws),
+            status = COALESCE(EXCLUDED.status, station.status);
+        """,
+    )
+    run_psql(db_name, "-c", "TRUNCATE station_stage;")
 
 
 def load_equipment_tables(db_name, events_csv, elements_csv, tables_sql):

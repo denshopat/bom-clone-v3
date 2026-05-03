@@ -292,5 +292,53 @@ END $$;
 
 
 --
+-- Name: station_bom_station_number_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+-- Natural key. Required for the staging+merge load pattern (ON CONFLICT
+-- (bom_station_number)) and prevents the duplicate-row regression that
+-- happened when load_station_table was a bare \copy without truncate.
+--
+
+DO $$ BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'station_bom_station_number_key'
+    ) THEN
+        ALTER TABLE ONLY public.station
+            ADD CONSTRAINT station_bom_station_number_key UNIQUE (bom_station_number);
+    END IF;
+END $$;
+
+
+--
+-- Name: station_stage; Type: TABLE; Schema: public; Owner: -
+--
+-- Staging table used by setup_database.load_station_table. All-text columns
+-- so empty CSV cells survive COPY; values get NULLIF'd and cast on the
+-- INSERT. Same pattern as station_equipment_event_stage.
+--
+
+CREATE TABLE IF NOT EXISTS public.station_stage (
+    bom_station_number text,
+    station_name text,
+    start_year text,
+    end_year text,
+    latitude text,
+    longitude text,
+    source text,
+    state text,
+    height text,
+    bar_height text,
+    wmo text,
+    metadata_compiled text,
+    bom_district_name text,
+    identification text,
+    network_classification text,
+    station_purpose text,
+    aws text,
+    status text
+);
+
+
+--
 -- PostgreSQL database dump complete
 --
