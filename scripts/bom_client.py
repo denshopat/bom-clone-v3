@@ -104,7 +104,7 @@ def _http_get(
         with urllib.request.urlopen(request, timeout=timeout) as resp:
             body = resp.read()
             content_type = resp.info().get("Content-Type", "") or ""
-    except urllib.error.URLError as exc:
+    except (urllib.error.URLError, TimeoutError) as exc:
         raise BomFetchError(f"GET {url} failed: {exc}") from exc
     return body, content_type
 
