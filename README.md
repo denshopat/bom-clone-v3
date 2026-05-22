@@ -303,3 +303,24 @@ Open it in your browser:
 Outputs:
 - `data/logs/analytics/analytics.html`
 - `data/logs/analytics/analytics.json`
+
+## Data source and attribution
+
+All raw data is sourced from the Australian Bureau of Meteorology
+(<http://www.bom.gov.au>). This project is an unaffiliated mirror; it does not
+modify BOM data semantically, only stores and indexes it locally. Respect the
+BOM's terms of use when redistributing observations.
+
+## Security and privacy
+
+- The only secret used by this project is your local PostgreSQL password,
+  stored in `config.ini`. That file is gitignored and is never required to
+  be shared; `config.ini.example` shows the expected layout.
+- All network traffic is outbound HTTPS to `bom.gov.au`. No inbound network
+  surface, no API tokens, no telemetry.
+- The data itself contains no personal information — only weather station
+  metadata (location, equipment) and daily observations.
+
+## License
+
+Released under the [MIT License](LICENSE).
