@@ -2,6 +2,47 @@
 
 A local pipeline for building the BOM clone database: station metadata, equipment history, and daily rainfall/max/min temperature downloads.
 
+## What it scrapes
+
+Three things from <http://www.bom.gov.au>, all publicly accessible:
+
+1. **Station lists** — `alphaAUS_3.txt` (temperature stations) and `numAUS_139.txt`
+   (rainfall stations). The master enumeration of every BOM station with basic
+   metadata.
+2. **Station metadata PDFs** — `IDCJMD0040.{station}.SiteInfo.pdf` per station.
+   Contains site details (lat/lon, elevation, opened/closed dates, district)
+   and the full equipment install/remove/replace history.
+3. **Daily observation zips** — one per station × product (rainfall, max temp,
+   min temp). Each zip holds all available years of daily readings as a CSV.
+
+All traffic is outbound HTTPS to `bom.gov.au`. The scraper sleeps between
+requests by default and does not parallelise.
+
+## What it builds
+
+A local PostgreSQL database (`bom_clone_v3`) with these tables:
+
+| Table / view | Contents |
+|---|---|
+| `station` | Per-station metadata: id, name, coordinates, state, elevation, barometer height, operating years, status, district. |
+| `station_equipment_event` | Per-instrument install / remove / replace / share event, with date and source PDF. |
+| `station_equipment_element` | Instrument categories (rainfall, thermometer, etc.) present at each station. |
+| `daily_rainfall` | One row per station-day: `rainfall_amount`, `rainfall_period`, quality flag. |
+| `daily_max_temperature` | One row per station-day: `max_temperature`, accumulation days, quality flag. |
+| `daily_min_temperature` | One row per station-day: `min_temperature`, accumulation days, quality flag. |
+| `acornsat` (view) | Subset of `station` filtered to BOM's ACORNSAT reference network. |
+
+Plus, on disk in `data/output/`:
+
+- `station_table.csv` / `station_table_known_state.csv` — flat station export
+- `station_equipment_events.csv` / `station_equipment_elements.csv` — equipment history
+
+And browsable artifacts in `data/logs/`:
+
+- `status.html` — pipeline run state, auto-refreshing
+- `analytics/analytics.html` — yearly row / station counts with charts
+- `summary_YYYYMMDD_HHMMSS.{json,txt}` — timestamped DB-size snapshots
+
 ## Layout
 
 - `config.ini` - single config file (DB + paths)
