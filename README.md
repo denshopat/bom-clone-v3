@@ -6,17 +6,40 @@ A local pipeline for building the BOM clone database: station metadata, equipmen
 
 Three things from <http://www.bom.gov.au>, all publicly accessible:
 
-1. **Station lists** — `alphaAUS_3.txt` (temperature stations) and `numAUS_139.txt`
-   (rainfall stations). The master enumeration of every BOM station with basic
-   metadata.
-2. **Station metadata PDFs** — `IDCJMD0040.{station}.SiteInfo.pdf` per station.
-   Contains site details (lat/lon, elevation, opened/closed dates, district)
-   and the full equipment install/remove/replace history.
-3. **Daily observation zips** — one per station × product (rainfall, max temp,
-   min temp). Each zip holds all available years of daily readings as a CSV.
+1. **Station lists** — `alphaAUS_3.txt` (~1,850 temperature stations) and
+   `numAUS_139.txt` (~17,950 rainfall stations). The master enumeration of
+   every BOM weather station with basic metadata.
+2. **Station metadata PDFs** — `IDCJMD0040.{station}.SiteInfo.pdf` per station,
+   on the order of **~19,000 PDFs** at full mirror. Contains site details
+   (lat/lon, elevation, opened/closed dates, district) and the full equipment
+   install/remove/replace history used to know which stations have which
+   sensors at which times.
+3. **Daily observation zips** — one per station × product (rainfall, max
+   temp, min temp), on the order of **~21,000 zips** at full mirror. Each
+   zip holds every available year of daily readings for that station and
+   product as a CSV. Rainfall coverage reaches back to **1832**; temperature
+   coverage to **1855**.
 
-All traffic is outbound HTTPS to `bom.gov.au`. The scraper sleeps between
-requests by default and does not parallelise.
+### Scale at full mirror
+
+| | Stations | Daily rows | Earliest |
+|---|---:|---:|---|
+| Rainfall            | ~17,900 | ~315.6 M | 1832 |
+| Maximum temperature |  ~1,800 |  ~20.4 M | 1855 |
+| Minimum temperature |  ~1,800 |  ~20.4 M | 1855 |
+| **Total**           |         | **~356 M** | |
+
+That's just under **400 million station-day rows** of observation data,
+plus per-station metadata and equipment history. Initial backfill from a
+cold start typically takes a couple of days end-to-end on a residential
+connection — the bottleneck is BOM's per-zip serving rate, not local
+disk or CPU. Re-runs are incremental and deduplicate via unique indexes
+(`bom_station_number, date, product_code`), so a refresh only inserts
+new rows.
+
+All traffic is outbound HTTPS to `bom.gov.au`. The scraper sleeps
+between requests by default and does not parallelise — the goal is a
+polite long-tail backfill, not a flood.
 
 ## What it builds
 
